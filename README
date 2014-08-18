@@ -1,0 +1,70 @@
+Using memfetch, page 37 
+http://shellcoders.blogspot.com/2009/05/using-memfetch-page-37.html
+
+memfetch - Linux on-demand process image dump
+---------------------------------------------
+
+Copyright (C) 2002, 2003 by Michal Zalewski <lcamtuf@coredump.cx>
+Distributed under terms and conditions of GNU Public License version 2.
+
+=============================================================================
+
+Memfetch is a very simple utility that can be used to dump process memory of 
+any userspace process running on the system without affecting its execution.
+Why bother? Well, quite often it is desirable to see what code and what data
+actually resides in memory under some pid (/proc entries are not always
+accurate). Debuggers like gdb are pretty good for examining small sections
+of code or memory, but are pretty much useless for massive comparison, 
+sophisticated searches and such. It's good to be able to retrieve full
+memory image to run it thru grep, strings, your favorite viewer or any other
+tool. Quite obviously, I developed this code not because it's extremely
+difficult to do it on your own, but because it is a valuable shell utility
+for all kinds of deep hacking activities that simply saves you time.
+
+Memfetch is a convenient screenshot grabber for ssh or screen sessions, by 
+the way ;-)
+
+The tool can be also used to retrieve memory dump on fault conditions -
+such as segmentation fault - even if core file won't be generated on
+kernel level (rlimit settings, custom signal handlers, setuid or otherwise
+privileged code, cwd permissions, etc). With its extra option, -s, the
+program will wait until SIGSEGV, SIGPIPE, SIGILL, SIGFPE or SIGBUS is
+delivered to a monitored process before taking a snapshot.
+
+Memory is dumped in a set of files - mfetch.lst describes all files,
+including their mapping addresses and source. map*.bin files are a copy of all
+non-anonymous maps (shared libraries, mostly). This is a useful piece
+of information you won't find in a core dump - while this data is generally
+not supposed to be different from file contents (with exceptions), it's also
+an interesting attack vector... Finally, mem*.bin files are anonymous memory 
+blocks, most likely code, stack and heap segments. I think it's much easier 
+to parse and more complete this way.
+
+Limitations, bugs and requirements: 
+
+  1) Only Linux supported; 2.2 or later is strongly recommended, as
+     map detection won't work properly on 2.0. Thanks to Linus, it is
+     no longer possible to mmap /proc/pid/mem on 2.4, so expect things
+     to work slower. Well done.
+
+  2) /proc filesystem has to be mounted.
+
+  3) You cannot generate a dump of a process that is already traced with
+     a ptrace-based debugger like strace, ltrace or gdb.
+
+  4) Do not use -s option on a hostile code; -s is intended for debugging
+     fault conditions in casual code, and can be easily detected by any
+     baseline anti-debugging routine.
+ 
+  5) There's a dumb kernel 2.2 and 2.4 bug - literal \n is not
+     escaped in any way in /proc/pid/maps. Not a big deal, but it's there
+     and may be used to trick this program into "seeing things".
+
+  6) Because ptrace() interface stinks, you cannot use -s in conjunction
+     with threads. 
+
+  7) On Linux 2.2, dumping threds using mmap() can cause wonderful system
+     hanging in some cases. Use -m option (slower) to avoid this.
+
+Please send your comments, bug-reports, enhancements and, as always,
+chocolate, to lcamtuf@coredump.cx
